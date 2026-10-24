@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="mk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Паричник</title>
+<meta name="description" content="Трошоци од плата до плата">
+<meta name="theme-color" content="#1E6B4E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Паричник">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: single phone column — pay-stub hero, category meters, ledger; bottom tab bar + add button */
+:root{
+  --bg:#EEF2EF; --surface:#FFFFFF; --sunk:#E2E9E5; --fg:#13211B; --muted:#56675F; --line:#D2DBD6;
+  --accent:#1E6B4E; --accent-ink:#FFFFFF; --accent-soft:#D5EADF;
+  --warn:#9A5F0E; --warn-soft:#F4E4C4; --bad:#AE3A2E; --bad-soft:#F5D8D3;
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1412; --surface:#161E1B; --sunk:#1E2824; --fg:#E3EBE6; --muted:#95A59D; --line:#2A3631;
+  --accent:#5DC79C; --accent-ink:#06130D; --accent-soft:#1C382C;
+  --warn:#E5AA4C; --warn-soft:#382B13; --bad:#F27D6E; --bad-soft:#3D1F1B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --surface:#161E1B; --sunk:#1E2824; --fg:#E3EBE6; --muted:#95A59D; --line:#2A3631;
+  --accent:#5DC79C; --accent-ink:#06130D; --accent-soft:#1C382C;
+  --warn:#E5AA4C; --warn-soft:#382B13; --bad:#F27D6E; --bad-soft:#3D1F1B; color-scheme:dark}
+
+*{box-sizing:border-box}
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+html,body{margin:0}
+body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 calc(96px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:-.01em}
+.brand small{display:block;font-family:var(--f-body);font-weight:500;font-size:12px;color:var(--muted);letter-spacing:0}
+.langsw{display:flex;background:var(--sunk);border-radius:999px;padding:3px}
+.langsw button{border:0;background:none;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:600;color:var(--muted)}
+.langsw button[aria-pressed="true"]{background:var(--surface);color:var(--fg)}
+
+.notice{font-size:13px;background:var(--warn-soft);color:var(--warn);padding:10px 12px;border-radius:10px}
+
+/* pay stub */
+.stub{background:var(--surface);border-radius:16px 16px 6px 6px;padding:18px 18px 20px;position:relative;
+  box-shadow:0 1px 0 var(--line)}
+.stub::after{content:"";position:absolute;left:10px;right:10px;bottom:-7px;height:8px;
+  background:radial-gradient(circle at 6px -1px,transparent 5px,var(--surface) 5.5px) 0 0/12px 8px repeat-x}
+.stub-head{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.big{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,11vw,46px);letter-spacing:-.02em;line-height:1.05;margin-top:10px}
+.big.neg{color:var(--bad)}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.meter{height:10px;background:var(--sunk);border-radius:99px;overflow:hidden;margin-top:14px}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.meter i.warn{background:var(--warn)} .meter i.bad{background:var(--bad)}
+.stub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;border-top:1px dashed var(--line);padding-top:12px}
+.stub-grid div{min-width:0}
+.stub-grid span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stub-grid b{font-family:var(--f-num);font-size:14px;font-weight:700}
+.alert{display:flex;gap:8px;align-items:center;background:var(--bad-soft);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
+
+h2{font-family:var(--f-display);font-weight:500;font-size:14px;margin:0;letter-spacing:.01em}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sec-h .hint{font-size:12px;color:var(--muted)}
+
+.cats{background:var(--surface);border-radius:14px;padding:6px 14px}
+.cat{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.cat:last-child{border-bottom:0}
+.cat .nm{display:flex;align-items:center;gap:8px;min-width:0;font-weight:500}
+.cat .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:3px;flex:none}
+.cat .amt{font-family:var(--f-num);font-size:13px;text-align:right;white-space:nowrap}
+.cat .amt em{font-style:normal;color:var(--muted)}
+.cat .meter{grid-column:1/-1;height:6px;margin-top:2px}
+.pill{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;margin-left:4px}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+
+.ledger{background:var(--surface);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;
+  background:none;border:0;border-bottom:1px solid var(--line);padding:12px 14px}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--sunk)}
+.row .d{font-size:12px;color:var(--muted);width:44px;line-height:1.2}
+.row .t{min-width:0}
+.row .t b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .t small{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px}
+.row .a{font-family:var(--f-num);font-weight:700;white-space:nowrap}
+.row .a.in{color:var(--accent)}
+.empty-small{padding:18px 14px;color:var(--muted);font-size:14px}
+
+.empty{background:var(--surface);border-radius:16px;padding:26px 20px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.empty h3{font-family:var(--f-display);font-weight:700;font-size:20px;margin:0;text-wrap:balance}
+.empty p{margin:0;color:var(--muted);max-width:40ch}
+
+.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:600;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--sunk);color:var(--fg)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn.small{padding:8px 12px;font-size:13px;border-radius:10px}
+
+/* history */
+.per{background:var(--surface);border-radius:14px;overflow:hidden}
+.per>button{width:100%;border:0;background:none;padding:14px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left}
+.per .when{font-weight:600}
+.per .meta{font-size:12px;color:var(--muted)}
+.per .res{font-family:var(--f-num);font-weight:700;text-align:right;grid-row:1/3;align-self:center}
+.per .res.pos{color:var(--accent)} .per .res.neg{color:var(--bad)}
+.per .res small{display:block;font-family:var(--f-body);font-weight:500;font-size:11px;color:var(--muted)}
+.per .ledger{border-top:1px solid var(--line);border-radius:0}
+
+/* settings */
+.card{background:var(--surface);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.seg{display:flex;background:var(--sunk);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:9px 6px;border-radius:9px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0 / .08)}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:500}
+.inp{width:100%;background:var(--sunk);border:1px solid transparent;border-radius:10px;padding:11px 12px;font-size:16px;min-width:0}
+.inp:focus{border-color:var(--accent);outline:none}
+.setcat{display:grid;grid-template-columns:auto 1fr 96px auto;gap:10px;align-items:center}
+.setcat .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setcat .inp{padding:8px 10px;font-size:15px;font-family:var(--f-num)}
+.iconbtn{border:0;background:none;color:var(--muted);width:32px;height:32px;border-radius:8px;font-size:18px;line-height:1}
+.iconbtn:hover{background:var(--sunk);color:var(--bad)}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:28px;height:28px;border-radius:8px;border:2px solid transparent}
+.swatches button[aria-pressed="true"]{border-color:var(--fg)}
+.rowf{display:flex;gap:8px;flex-wrap:wrap}
+.rowf>*{flex:1 1 130px;min-width:0}
+.rec{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.rec:last-of-type{border-bottom:0}
+.rec small{display:block;color:var(--muted);font-size:12px}
+
+/* nav + fab */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;justify-content:center;padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:5}
+nav.tabs .in{display:flex;width:100%;max-width:520px;gap:4px}
+nav.tabs button{flex:1;border:0;background:none;padding:8px 4px;border-radius:10px;font-size:12px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+.fab{position:fixed;right:max(18px,calc(env(safe-area-inset-right,0px) + 18px));bottom:calc(78px + env(safe-area-inset-bottom,0px));
+  width:58px;height:58px;border-radius:18px;border:0;background:var(--accent);color:var(--accent-ink);font-size:30px;line-height:1;
+  box-shadow:0 6px 18px rgb(0 0 0 / .18);z-index:6}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgb(0 0 0 / .4);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:20px 20px 0 0;max-height:92%;overflow:auto;
+  padding:18px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:14px;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet h3{font-family:var(--f-display);font-weight:500;font-size:16px;margin:0}
+.amt-inp{font-family:var(--f-display);font-weight:700;font-size:34px;background:none;border:0;border-bottom:2px solid var(--line);padding:4px 0;width:100%;min-width:0}
+.amt-inp:focus{outline:none;border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{border:1px solid var(--line);background:none;border-radius:99px;padding:7px 12px;font-size:14px;display:flex;align-items:center;gap:7px}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.daypick{display:flex;gap:6px;flex-wrap:wrap}
+.daypick button{border:1px solid var(--line);background:none;border-radius:10px;padding:8px 12px;font-family:var(--f-num);font-weight:700}
+.daypick button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .btn{flex:1}
+.err{color:var(--bad);font-size:13px}
+
+/* savings goal */
+.goal{background:var(--accent-soft);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.goal-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.goal-top b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.goal-top .num{font-weight:700;white-space:nowrap}
+.goal .meter{margin-top:0;background:var(--surface)}
+.goal small{color:var(--muted);font-size:12px}
+.goal a,.linkbtn{color:var(--accent);font-weight:600;background:none;border:0;padding:0;font-size:13px;text-align:left}
+
+/* comparison */
+.cmp{background:var(--surface);border-radius:14px;padding:6px 14px}
+.cmp-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.cmp-row:last-child{border-bottom:0}
+.cmp-row.total{font-weight:600}
+.cmp-row .nm{display:flex;align-items:center;gap:8px;min-width:0}
+.cmp-row .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-row .now{font-family:var(--f-num);font-size:13px;color:var(--muted);white-space:nowrap}
+.delta{font-family:var(--f-num);font-size:13px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;min-width:74px;text-align:center}
+.delta.up{background:var(--warn-soft);color:var(--warn)}
+.delta.down{background:var(--accent-soft);color:var(--accent)}
+.delta.flat{background:var(--sunk);color:var(--muted)}
+
+/* search */
+.filters{background:var(--surface);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.searchbox{position:relative}
+.searchbox svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+.searchbox .inp{padding-left:38px}
+.filters .rowf .inp{font-size:15px;padding:9px 10px}
+.res-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+
+/* ai */
+.ai{border:1px dashed var(--accent);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.ai p{margin:0;font-size:14px}
+.ai .rec-val{font-family:var(--f-display);font-weight:700;font-size:22px}
+.ai .thinking{color:var(--muted);font-size:14px}
+[hidden]{display:none!important}
+img{max-width:100%}
+.small-note{font-size:12px;color:var(--muted);margin:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);
+  padding:10px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:30;max-width:calc(100% - 32px)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Паричник<small id="tagline"></small></div>
+    <div class="langsw" role="group" aria-label="Language">
+      <button id="lang-mk" data-lang="mk">МК</button>
+      <button id="lang-en" data-lang="en">EN</button>
+    </div>
+  </header>
+  <div id="notice" class="notice" hidden></div>
+  <main id="view"></main>
+</div>
+
+<button class="fab" id="fab" aria-label="Add">+</button>
+<nav class="tabs"><div class="in">
+  <button data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span></span></button>
+  <button data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span></span></button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span></span></button>
+</div></nav>
+<div id="sheetHost"></div>
+
+<script>
+const T={
+mk:{tag:'Трошоци од плата до плата',home:'Преглед',history:'Историја',settings:'Поставки',
+ remaining:'Останато',budgetOf:'од буџет',spent:'Потрошено',income:'Приход',budget:'Буџет',
+ daysLeft:n=>n===1?'1 ден до следна плата':`${n} дена до следна плата`,daysOver:'Периодот на платата заврши — додај ја новата плата',
+ perDay:'по ден',byCat:'По категории',noLimit:'без лимит',over:'над лимит',near:'блиску',
+ thisPeriod:'Во овој период',noTx:'Уште нема ставки во овој период.',
+ emptyTitle:'Почни со првата плата',emptyBody:'Внеси ја платата и за колку дена е. Од тој ден до следната плата апликацијата ги собира трошоците и ти кажува колку ти останува.',
+ addPay:'Додај плата',expense:'Трошок',salary:'Плата',otherIncome:'Друг приход',amount:'Износ во долари',
+ category:'Категорија',date:'Датум',note:'Белешка',notePh:'на пр. ShopRite',days:'Платата е за колку дена?',daysUnit:'дена',
+ save:'Зачувај',cancel:'Откажи',del:'Избриши',confirmDel:'Ќе се избрише трајно.',yesDel:'Да, избриши',
+ editTitle:'Измени ставка',newTitle:'Нова ставка',payFrom:'Плата од',prePeriod:'Пред прва плата',current:'тековен',
+ saved:'заштедено',overspent:'пречекорено',noHistory:'Претходните периоди ќе се појават тука откако ќе внесеш втора плата.',
+ budgetMode:'Буџет за секој период',bPay:'Целата плата',bFixed:'Фиксен износ',fixedAmt:'Буџет по период ($)',
+ cats:'Категории и лимити',catsHint:'Лимит по период од плата до плата',limitPh:'—',addCat:'Додај категорија',catName:'Име на категорија',
+ recurring:'Повторувачки трошоци',recHint:'Се додаваат сами на датумот кога доаѓаат.',weekly:'Неделно',monthly:'Месечно',
+ next:'следно',addRec:'Додај повторувачки трошок',name:'Име',namePh:'на пр. Кирија',noRec:'Нема повторувачки трошоци.',
+ budgetOver:'Го надмина буџетот за овој период',catOver:n=>`Над лимит: ${n}`,
+ backup:'Резервна копија',backupHint:'Податоците се чуваат само на овој телефон. Зачувувај копија во Files или iCloud Drive, за да не се изгубат ако го смениш или ресетираш телефонот.',
+ exportBtn:'Зачувај копија',importBtn:'Врати од копија',lastBackup:d=>`Последна копија: ${d}`,noBackup:'Уште немаш зачувано копија.',
+ importConfirm:(a,b)=>`Сегашните податоци (${a} ставки) ќе се заменат со копијата (${b} ставки).`,importYes:'Да, врати',
+ importBad:'Овој фајл не е резервна копија од Паричник.',imported:'Податоците се вратени.',exported:'Копијата е зачувана.',
+ aiKeyTitle:'Препорака од Claude',aiKeyHint:'За препораката ти треба Claude API клуч. Клучот се чува само на овој телефон и не влегува во резервната копија.',
+ aiKeyWhere:'Клуч правиш на',aiKeyPh:'sk-ant-…',aiKeySave:'Зачувај',aiKeyRemove:'Избриши го API клучот',
+ aiBadKey:'Клучот не е точен. Треба да почнува со sk-ant-. Провери го и внеси го повторно.',aiCredit:'Немаш кредит на API сметката. Додај кредит на console.anthropic.com.',
+ aiOffline:'Нема интернет. Препораката бара врска.',
+ saveErr:'Не успеав да зачувам. Провери ја врската и обиди се пак.',errAmt:'Внеси износ поголем од 0.',errName:'Внеси име.',
+ auto:'автоматски',salaryN:'Плата',per:'период',
+ saving:'Штедење',goalTitle:'Цел за штедење',goalName:'Име на целта',goalNamePh:'на пр. Итни случаи',goalTarget:'Колку сакаш да заштедиш ($)',
+ goalDate:'До кој датум (не мора)',savedTotal:'заштедено',perPay:'од секоја плата',noGoal:'Немаш цел за штедење.',setGoal:'Постави цел',
+ saveMode:'Колку оди во штедење',savePct:'Процент',saveAmt:'Износ',saveValPct:'Процент од секоја плата (%)',saveValAmt:'Износ од секоја плата ($)',
+ aiRec:'Препорачај ми колку да штедам',aiRedo:'Нова препорака',aiWorking:'Claude ја анализира твојата потрошувачка…',aiAccept:'Прифати',aiDismiss:'Не, благодарам',
+ aiErr:'Препораката не успеа. Обиди се повторно.',aiOff:'Препораката не е достапна во овој прозорец.',aiLimit:'Премногу барања. Обиди се за малку.',
+ aiSuggest:'Препорака',saveField:'Во штедење од оваа плата ($)',saveFieldHint:'Остави празно за автоматски од поставките',
+ eta:d=>`Со ова темпо, целата сума околу ${d}`,goalDone:'Целта е достигната!',
+ compare:'Споредба со минатиот период',compareHint:n=>`првите ${n} дена од двата периода`,totalSpent:'Вкупно потрошено',
+ vsPrev:'минат пат',noCompare:'Споредбата ќе се појави откако ќе внесеш втора плата.',
+ search:'Пребарај трошоци',searchPh:'на пр. Uber, ShopRite',allCats:'Сите категории',from:'Од',to:'До',
+ results:n=>n===1?'1 резултат':`${n} резултати`,clear:'Исчисти',noResults:'Нема ставки што одговараат.',periods:'Периоди',byDate:'до'},
+en:{tag:'Spending from paycheck to paycheck',home:'Overview',history:'History',settings:'Settings',
+ remaining:'Left',budgetOf:'of budget',spent:'Spent',income:'Income',budget:'Budget',
+ daysLeft:n=>n===1?'1 day until next paycheck':`${n} days until next paycheck`,daysOver:'This paycheck period has ended — add your new paycheck',
+ perDay:'per day',byCat:'By category',noLimit:'no limit',over:'over limit',near:'close',
+ thisPeriod:'This period',noTx:'Nothing in this period yet.',
+ emptyTitle:'Start with your first paycheck',emptyBody:'Enter your paycheck and how many days it covers. From that day until the next paycheck the app adds up your spending and shows what is left.',
+ addPay:'Add paycheck',expense:'Expense',salary:'Paycheck',otherIncome:'Other income',amount:'Amount in dollars',
+ category:'Category',date:'Date',note:'Note',notePh:'e.g. ShopRite',days:'How many days does it cover?',daysUnit:'days',
+ save:'Save',cancel:'Cancel',del:'Delete',confirmDel:'This is permanent.',yesDel:'Yes, delete',
+ editTitle:'Edit entry',newTitle:'New entry',payFrom:'Paycheck from',prePeriod:'Before first paycheck',current:'current',
+ saved:'saved',overspent:'overspent',noHistory:'Past periods will show here once you add a second paycheck.',
+ budgetMode:'Budget for each period',bPay:'Whole paycheck',bFixed:'Fixed amount',fixedAmt:'Budget per period ($)',
+ cats:'Categories & limits',catsHint:'Limit per paycheck period',limitPh:'—',addCat:'Add category',catName:'Category name',
+ recurring:'Recurring expenses',recHint:'Added automatically on the day they are due.',weekly:'Weekly',monthly:'Monthly',
+ next:'next',addRec:'Add recurring expense',name:'Name',namePh:'e.g. Rent',noRec:'No recurring expenses.',
+ budgetOver:'You went over this period’s budget',catOver:n=>`Over limit: ${n}`,
+ backup:'Backup',backupHint:'Your data lives only on this phone. Save a copy to Files or iCloud Drive so you don’t lose it if you change or reset your phone.',
+ exportBtn:'Save a copy',importBtn:'Restore from copy',lastBackup:d=>`Last copy: ${d}`,noBackup:'You haven’t saved a copy yet.',
+ importConfirm:(a,b)=>`Your current data (${a} entries) will be replaced by the copy (${b} entries).`,importYes:'Yes, restore',
+ importBad:'This file isn’t a Паричник backup.',imported:'Your data has been restored.',exported:'Copy saved.',
+ aiKeyTitle:'Recommendation from Claude',aiKeyHint:'The recommendation needs a Claude API key. The key stays on this phone and is not included in backups.',
+ aiKeyWhere:'Create a key at',aiKeyPh:'sk-ant-…',aiKeySave:'Save',aiKeyRemove:'Remove API key',
+ aiBadKey:'That key isn’t right. It should start with sk-ant-. Check it and enter it again.',aiCredit:'Your API account has no credit. Add credit at console.anthropic.com.',
+ aiOffline:'No internet. The recommendation needs a connection.',
+ saveErr:'Couldn’t save. Check your connection and try again.',errAmt:'Enter an amount above 0.',errName:'Enter a name.',
+ auto:'auto',salaryN:'Paycheck',per:'period',
+ saving:'Savings',goalTitle:'Savings goal',goalName:'Goal name',goalNamePh:'e.g. Emergency fund',goalTarget:'How much to save ($)',
+ goalDate:'By date (optional)',savedTotal:'saved',perPay:'from each paycheck',noGoal:'You have no savings goal.',setGoal:'Set a goal',
+ saveMode:'How much goes to savings',savePct:'Percent',saveAmt:'Amount',saveValPct:'Percent of each paycheck (%)',saveValAmt:'Amount from each paycheck ($)',
+ aiRec:'Recommend how much to save',aiRedo:'New recommendation',aiWorking:'Claude is looking at your spending…',aiAccept:'Accept',aiDismiss:'No thanks',
+ aiErr:'The recommendation failed. Try again.',aiOff:'Recommendations aren’t available in this window.',aiLimit:'Too many requests. Try again in a bit.',
+ aiSuggest:'Recommendation',saveField:'Savings from this paycheck ($)',saveFieldHint:'Leave empty to use your settings',
+ eta:d=>`At this pace you reach it around ${d}`,goalDone:'Goal reached!',
+ compare:'Compared with last period',compareHint:n=>`first ${n} days of both periods`,totalSpent:'Total spent',
+ vsPrev:'last time',noCompare:'The comparison shows up once you add a second paycheck.',
+ search:'Search expenses',searchPh:'e.g. Uber, ShopRite',allCats:'All categories',from:'From',to:'To',
+ results:n=>n===1?'1 result':`${n} results`,clear:'Clear',noResults:'Nothing matches.',periods:'Periods',byDate:'by'}};
+const COLORS=['#2F9E6E','#3B7DD8','#D9822B','#B455B6','#D64545','#2AA3A3','#7A6FD0','#A08A2C'];
+const defaults=()=>({categories:[
+ {id:'food',mk:'Храна и маркет',en:'Food & groceries',color:'#2F9E6E'},
+ {id:'rent',mk:'Кирија и сметки',en:'Rent & bills',color:'#3B7DD8'},
+ {id:'transport',mk:'Превоз',en:'Transport',color:'#D9822B'},
+ {id:'fun',mk:'Забава и претплати',en:'Fun & subscriptions',color:'#B455B6'},
+ {id:'other',mk:'Друго',en:'Other',color:'#8A918D'}],
+ budgetMode:'paycheck',fixedBudget:0,limits:{},recurring:[],
+ saving:{mode:'pct',value:0,goalName:'',goalTarget:0,goalDate:''}});
+
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+let lang=LS.get('paricnik.lang','mk');
+let tab='home';
+let settings=defaults();
+let txs=[]; // {id,type:'expense'|'salary'|'income',amount,catId,date,note,days,recId}
+let ready={s:false,t:false},recurringDone=false;
+let openPeriod=null;
+let filt={q:'',cat:'',from:'',to:''};
+let ai={state:'idle',rec:null,msg:''};
+const t=k=>T[lang][k];
+const fmt=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
+const r2=n=>Math.round(n*100)/100;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const toD=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d,12)};
+const toS=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays=(s,n)=>{const d=toD(s);d.setDate(d.getDate()+n);return toS(d)};
+const addMonth=s=>{const d=toD(s),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+1);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return toS(d)};
+const diff=(a,b)=>Math.round((toD(b)-toD(a))/864e5);
+const dShort=s=>toD(s).toLocaleDateString(lang==='mk'?'mk-MK':'en-US',{day:'numeric',month:'short'});
+const dLong=s=>toD(s).toLocaleDateString(lang==='mk'?'mk-MK':'en-US',{day:'numeric',month:'long',year:'numeric'});
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const cat=id=>settings.categories.find(c=>c.id===id)||settings.categories.find(c=>c.id==='other')||{id:'other',mk:'Друго',en:'Other',color:'#8A918D'};
+const catName=c=>c.name||(lang==='mk'?c.mk:c.en);
+const liveCats=()=>settings.categories.filter(c=>!c.archived);
+
+/* ---------- periods ---------- */
+function periods(){
+  const sorted=[...txs].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.created||0)-(b.created||0));
+  const pays=sorted.filter(x=>x.type==='salary');
+  const starts=[...new Set(pays.map(p=>p.date))].sort();
+  const list=[];
+  if(sorted.some(x=>!starts.length||x.date<starts[0])) list.push({start:null,end:starts[0]||null,pre:true});
+  starts.forEach((s,i)=>list.push({start:s,end:starts[i+1]||null}));
+  list.forEach(p=>{
+    p.items=sorted.filter(x=>(p.start===null||x.date>=p.start)&&(p.end===null||x.date<p.end)).reverse();
+    p.pays=p.items.filter(x=>x.type==='salary'&&x.date===p.start);
+    p.days=Math.max(1,...p.pays.map(x=>+x.days||7));
+    p.income=r2(p.items.filter(x=>x.type!=='expense').reduce((a,x)=>a+x.amount,0));
+    p.spent=r2(p.items.filter(x=>x.type==='expense').reduce((a,x)=>a+x.amount,0));
+    p.save=r2(p.pays.reduce((a,x)=>a+(+x.save||0),0));
+    p.byCat={};p.items.filter(x=>x.type==='expense').forEach(x=>{p.byCat[x.catId]=r2((p.byCat[x.catId]||0)+x.amount)});
+  });
+  return list;
+}
+/* savings */
+function saveFor(payAmt){
+  const s=settings.saving||{};const v=+s.value||0;
+  return r2(s.mode==='amt'?Math.min(v,payAmt):payAmt*v/100);
+}
+function totalSaved(){return r2(txs.filter(x=>x.type==='salary').reduce((a,x)=>a+(+x.save||0),0))}
+async function applySaveToCurrent(){
+  const ps=periods();const cur=ps[ps.length-1];
+  if(!cur||cur.pre)return;
+  for(const p of cur.pays){
+    const v=saveFor(p.amount);
+    if(v!==(+p.save||0)){const {id,...doc}=p;doc.save=v;try{await putTx(id,doc)}catch(e){}}
+  }
+}
+/* comparison: same number of days into the previous period */
+function comparison(ps){
+  const cur=ps[ps.length-1],prev=ps[ps.length-2];
+  if(!cur||cur.pre||!prev||prev.pre)return null;
+  const n=Math.max(1,diff(cur.start,todayStr())+1);
+  const cut=addDays(prev.start,n);
+  const prevItems=prev.items.filter(x=>x.type==='expense'&&x.date<cut);
+  const pc={};prevItems.forEach(x=>{pc[x.catId]=r2((pc[x.catId]||0)+x.amount)});
+  const ids=[...new Set([...Object.keys(cur.byCat),...Object.keys(pc)])];
+  const rows=ids.map(id=>({c:cat(id),now:cur.byCat[id]||0,was:pc[id]||0})).map(r=>({...r,d:r2(r.now-r.was)}))
+    .sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
+  const wasTotal=r2(prevItems.reduce((a,x)=>a+x.amount,0));
+  return {n,rows,now:cur.spent,was:wasTotal,d:r2(cur.spent-wasTotal)};
+}
+function deltaHTML(d){
+  if(Math.abs(d)<0.005)return `<span class="delta flat">±$0</span>`;
+  return `<span class="delta ${d>0?'up':'down'}">${d>0?'+':'−'}${fmt(Math.abs(d))}</span>`;
+}
+
+/* ---------- render ---------- */
+const view=document.getElementById('view');
+function render(){
+  document.documentElement.lang=lang;
+  document.getElementById('tagline').textContent=t('tag');
+  document.querySelectorAll('.langsw button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===lang));
+  document.querySelectorAll('nav.tabs button').forEach(b=>{b.querySelector('span').textContent=t(b.dataset.tab);
+    b.toggleAttribute('aria-current',false);if(b.dataset.tab===tab)b.setAttribute('aria-current','page')});
+  document.getElementById('fab').hidden=tab==='settings';
+  if(tab==='home')view.innerHTML=homeHTML();
+  else if(tab==='history')view.innerHTML=historyHTML();
+  else view.innerHTML=settingsHTML();
+}
+function rowHTML(x){
+  const isIn=x.type!=='expense';const c=cat(x.catId);
+  const title=x.note||(x.type==='salary'?t('salaryN'):x.type==='income'?t('otherIncome'):catName(c));
+  const meta=x.type==='expense'?`<span class="dot" style="background:${c.color}"></span>${esc(catName(c))}${x.recId?' · '+t('auto'):''}`
+    :x.type==='salary'?`${t('salary')} · ${x.days||7} ${t('daysUnit')}`:t('otherIncome');
+  return `<button class="row" data-edit="${esc(x.id)}"><span class="d">${esc(dShort(x.date))}</span>
+   <span class="t"><b>${esc(title)}</b><small>${meta}</small></span>
+   <span class="a ${isIn?'in':''}">${isIn?'+':'−'}${fmt(x.amount)}</span></button>`;
+}
+function homeHTML(){
+  if(!(ready.s&&ready.t)) return `<div class="empty-small">…</div>`;
+  const ps=periods();const cur=ps[ps.length-1];
+  if(!cur||cur.pre){
+    return `<div class="sec"><div class="empty"><h3>${t('emptyTitle')}</h3><p>${t('emptyBody')}</p>
+      <button class="btn" data-new="salary">${t('addPay')}</button></div>
+      ${cur&&cur.items.length?`<div class="sec-h"><h2>${t('prePeriod')}</h2></div><div class="ledger">${cur.items.map(rowHTML).join('')}</div>`:''}</div>`;
+  }
+  const base=settings.budgetMode==='fixed'&&settings.fixedBudget>0?settings.fixedBudget:cur.income;
+  const budget=r2(Math.max(0,base-cur.save));
+  const left=r2(budget-cur.spent);
+  const pct=budget>0?cur.spent/budget:1;
+  const endDay=addDays(cur.start,cur.days);
+  const dl=diff(todayStr(),endDay);
+  const perDay=dl>0?Math.max(0,left)/dl:0;
+  const cls=pct>1?'bad':pct>=.8?'warn':'';
+  const overCats=liveCats().filter(c=>settings.limits[c.id]>0&&(cur.byCat[c.id]||0)>settings.limits[c.id]).map(catName);
+  let catsRows=settings.categories.filter(c=>!c.archived||cur.byCat[c.id]).map(c=>{
+    const s=cur.byCat[c.id]||0,lim=+settings.limits[c.id]||0;
+    const p=lim?s/lim:0;const k=lim?(p>1?'bad':p>=.8?'warn':''):'';
+    return `<div class="cat"><div class="nm"><i class="dot" style="background:${c.color}"></i><span>${esc(catName(c))}</span>
+      ${k==='bad'?`<span class="pill bad">${t('over')}</span>`:k==='warn'?`<span class="pill warn">${t('near')}</span>`:''}</div>
+      <div class="amt">${fmt(s)} <em>/ ${lim?fmt(lim):t('noLimit')}</em></div>
+      ${lim?`<div class="meter"><i class="${k}" style="width:${Math.min(100,p*100).toFixed(1)}%;background:${k?'':c.color}"></i></div>`:''}</div>`;
+  }).join('');
+  return `<div class="sec" style="gap:18px">
+   <section class="stub" aria-label="${t('remaining')}">
+     <div class="stub-head"><span>${t('payFrom')} ${esc(dShort(cur.start))}</span><span>${cur.days} ${t('daysUnit')}</span></div>
+     <div class="big num ${left<0?'neg':''}">${fmt(left)}</div>
+     <div class="sub">${t('remaining')} ${t('budgetOf')} ${fmt(budget)}</div>
+     <div class="meter"><i class="${cls}" style="width:${Math.min(100,pct*100).toFixed(1)}%"></i></div>
+     <div class="sub" style="margin-top:8px">${dl>0?`${t('daysLeft')(dl)} · <span class="num">${fmt(perDay)}</span> ${t('perDay')}`:t('daysOver')}</div>
+     <div class="stub-grid"><div><span>${t('income')}</span><b>${fmt(cur.income)}</b></div>
+       <div><span>${t('saving')}</span><b>${fmt(cur.save)}</b></div>
+       <div><span>${t('spent')}</span><b>${fmt(cur.spent)}</b></div></div>
+   </section>
+   ${left<0?`<div class="alert">${t('budgetOver')}</div>`:''}
+   ${overCats.length?`<div class="alert">${esc(t('catOver')(overCats.join(', ')))}</div>`:''}
+   ${goalHTML(cur)}
+   ${compareHTML(ps)}
+   <div class="sec"><div class="sec-h"><h2>${t('byCat')}</h2></div><div class="cats">${catsRows}</div></div>
+   <div class="sec"><div class="sec-h"><h2>${t('thisPeriod')}</h2><span class="hint">${cur.items.length}</span></div>
+     <div class="ledger">${cur.items.length?cur.items.map(rowHTML).join(''):`<div class="empty-small">${t('noTx')}</div>`}</div></div>
+  </div>`;
+}
+function goalHTML(cur){
+  const s=settings.saving||{};
+  if(!(+s.goalTarget>0)) return `<div class="goal"><div class="goal-top"><b>${t('goalTitle')}</b></div>
+    <small>${t('noGoal')}</small><button class="linkbtn" data-tab="settings" data-goto="saving">${t('setGoal')} →</button></div>`;
+  const saved=totalSaved(),target=+s.goalTarget,p=Math.min(1,saved/target);
+  let eta='';
+  if(saved>=target)eta=t('goalDone');
+  else if(cur&&!cur.pre){const per=cur.save||saveFor(cur.pays[0]?.amount||0);
+    if(per>0){const n=Math.ceil((target-saved)/per);eta=t('eta')(dLong(addDays(cur.start,n*cur.days)))}}
+  return `<div class="goal"><div class="goal-top"><b>${esc(s.goalName||t('goalTitle'))}</b>
+    <span class="num">${fmt(saved)} / ${fmt(target)}</span></div>
+    <div class="meter"><i style="width:${(p*100).toFixed(1)}%"></i></div>
+    <small>${s.value>0?`${s.mode==='amt'?fmt(s.value):s.value+'%'} ${t('perPay')}`:''}${s.goalDate?`${s.value>0?' · ':''}${t('byDate')} ${esc(dLong(s.goalDate))}`:''}</small>
+    ${eta?`<small>${esc(eta)}</small>`:''}</div>`;
+}
+function compareHTML(ps){
+  const c=comparison(ps);
+  if(!c)return `<div class="sec"><div class="sec-h"><h2>${t('compare')}</h2></div><div class="cmp"><div class="empty-small" style="padding:12px 0">${t('noCompare')}</div></div></div>`;
+  return `<div class="sec"><div class="sec-h"><h2>${t('compare')}</h2><span class="hint">${t('compareHint')(c.n)}</span></div><div class="cmp">
+    <div class="cmp-row total"><span class="nm"><span>${t('totalSpent')}</span></span><span class="now">${fmt(c.now)}</span>${deltaHTML(c.d)}</div>
+    ${c.rows.map(r=>`<div class="cmp-row"><span class="nm"><i class="dot" style="background:${r.c.color}"></i><span>${esc(catName(r.c))}</span></span>
+      <span class="now">${fmt(r.now)}</span>${deltaHTML(r.d)}</div>`).join('')}
+  </div></div>`;
+}
+function historyHTML(){
+  const opts=settings.categories.filter(c=>!c.archived||txs.some(x=>x.catId===c.id));
+  return `<div class="sec" style="gap:18px"><div class="sec"><h2>${t('search')}</h2><div class="filters">
+    <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input class="inp" id="fQ" type="search" placeholder="${t('searchPh')}" value="${esc(filt.q)}" aria-label="${t('search')}"></div>
+    <select class="inp" id="fCat" aria-label="${t('category')}" style="font-size:15px;padding:9px 10px"><option value="">${t('allCats')}</option>
+      ${opts.map(c=>`<option value="${esc(c.id)}" ${filt.cat===c.id?'selected':''}>${esc(catName(c))}</option>`).join('')}</select>
+    <div class="rowf"><label class="f">${t('from')}<input class="inp" type="date" id="fFrom" value="${filt.from}"></label>
+      <label class="f">${t('to')}<input class="inp" type="date" id="fTo" value="${filt.to}"></label></div>
+  </div></div><div id="hbody">${historyBody()}</div></div>`;
+}
+const filtActive=()=>!!(filt.q.trim()||filt.cat||filt.from||filt.to);
+function historyBody(){
+  if(!filtActive())return periodsHTML();
+  const q=filt.q.trim().toLowerCase();
+  const res=txs.filter(x=>{
+    if(filt.cat&&x.catId!==filt.cat)return false;
+    if(filt.cat&&x.type!=='expense')return false;
+    if(filt.from&&x.date<filt.from)return false;
+    if(filt.to&&x.date>filt.to)return false;
+    if(q){const hay=[x.note,x.type==='expense'?catName(cat(x.catId)):x.type==='salary'?t('salary'):t('otherIncome')].join(' ').toLowerCase();
+      if(!hay.includes(q))return false}
+    return true;
+  }).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.created||0)-(a.created||0));
+  return `<div class="sec"><div class="res-h"><span>${t('results')(res.length)}</span><button class="linkbtn" data-clearfilt>${t('clear')}</button></div>
+    <div class="ledger">${res.length?res.map(rowHTML).join(''):`<div class="empty-small">${t('noResults')}</div>`}</div></div>`;
+}
+function periodsHTML(){
+  const ps=periods();
+  const all=ps.slice().reverse();
+  if(ps.length<2) {
+    return `<div class="sec"><div class="sec-h"><h2>${t('periods')}</h2></div><div class="empty"><p>${t('noHistory')}</p></div></div>`;
+  }
+  return `<div class="sec"><div class="sec-h"><h2>${t('periods')}</h2></div>${all.map((p,i)=>{
+    const key=p.start||'pre';const net=r2(p.income-p.spent);const isOpen=openPeriod===key;
+    const when=p.pre?t('prePeriod'):`${dShort(p.start)} → ${p.end?dShort(addDays(p.end,-1)):'…'}`;
+    return `<div class="per"><button data-period="${esc(key)}" aria-expanded="${isOpen}">
+      <span class="when">${esc(when)}${i===0&&!p.pre?` <span class="pill warn" style="background:var(--accent-soft);color:var(--accent)">${t('current')}</span>`:''}</span>
+      <span class="res num ${net>=0?'pos':'neg'}">${net>=0?'+':'−'}${fmt(Math.abs(net))}<small>${net>=0?t('saved'):t('overspent')}</small></span>
+      <span class="meta">${t('income')} ${fmt(p.income)} · ${t('spent')} ${fmt(p.spent)}</span></button>
+      ${isOpen?`<div class="ledger">${p.items.length?p.items.map(rowHTML).join(''):`<div class="empty-small">${t('noTx')}</div>`}</div>`:''}</div>`;
+  }).join('')}</div>`;
+}
+let newCatColor=COLORS[4];
+function settingsHTML(){
+  const rec=settings.recurring||[];
+  const s=settings.saving||{};
+  return `<div class="sec" style="gap:18px">
+  <div class="sec" id="sec-saving"><h2>${t('goalTitle')}</h2><div class="card">
+    <div class="rowf"><label class="f">${t('goalName')}<input class="inp" id="gName" placeholder="${t('goalNamePh')}" value="${esc(s.goalName||'')}"></label>
+      <label class="f">${t('goalTarget')}<input class="inp num" id="gTarget" inputmode="decimal" placeholder="1000" value="${s.goalTarget||''}"></label></div>
+    <label class="f">${t('goalDate')}<input class="inp" type="date" id="gDate" value="${esc(s.goalDate||'')}"></label>
+    <div class="f" style="font-size:12px;color:var(--muted)">${t('saveMode')}
+      <div class="seg" role="group" style="margin-top:6px"><button data-smode="pct" aria-pressed="${s.mode!=='amt'}">${t('savePct')}</button>
+      <button data-smode="amt" aria-pressed="${s.mode==='amt'}">${t('saveAmt')}</button></div></div>
+    <label class="f">${s.mode==='amt'?t('saveValAmt'):t('saveValPct')}<input class="inp num" id="sVal" inputmode="decimal" placeholder="0" value="${s.value||''}"></label>
+    <div id="aiBox">${aiHTML()}</div>
+  </div></div>
+  <div class="sec"><h2>${t('budgetMode')}</h2><div class="card">
+    <div class="seg" role="group"><button data-bmode="paycheck" aria-pressed="${settings.budgetMode!=='fixed'}">${t('bPay')}</button>
+      <button data-bmode="fixed" aria-pressed="${settings.budgetMode==='fixed'}">${t('bFixed')}</button></div>
+    ${settings.budgetMode==='fixed'?`<label class="f">${t('fixedAmt')}<input class="inp num" id="fixedBudget" inputmode="decimal" value="${settings.fixedBudget||''}"></label>`:''}
+  </div></div>
+  <div class="sec"><div class="sec-h"><h2>${t('cats')}</h2><span class="hint">${t('catsHint')}</span></div><div class="card">
+    ${liveCats().map(c=>`<div class="setcat"><i class="dot" style="background:${c.color}"></i><span class="nm">${esc(catName(c))}</span>
+      <input class="inp" id="lim-${esc(c.id)}" data-limit="${esc(c.id)}" inputmode="decimal" placeholder="$ ${t('limitPh')}" value="${settings.limits[c.id]||''}" aria-label="${esc(catName(c))}">
+      ${c.id==='other'?'<span style="width:32px"></span>':`<button class="iconbtn" data-delcat="${esc(c.id)}" aria-label="${t('del')}">×</button>`}</div>`).join('')}
+    <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
+      <div class="rowf"><input class="inp" id="newCat" placeholder="${t('catName')}"><button class="btn small" data-addcat style="flex:0 0 auto">${t('addCat')}</button></div>
+      <div class="swatches">${COLORS.map(col=>`<button data-swatch="${col}" style="background:${col}" aria-pressed="${col===newCatColor}" aria-label="${col}"></button>`).join('')}</div>
+      <div class="err" id="catErr"></div>
+    </div>
+  </div></div>
+  <div class="sec"><div class="sec-h"><h2>${t('recurring')}</h2><span class="hint">${t('recHint')}</span></div><div class="card">
+    ${rec.length?rec.map(r=>`<div class="rec"><div style="min-width:0"><b>${esc(r.name)}</b><small>${esc(catName(cat(r.catId)))} · ${r.freq==='weekly'?t('weekly'):t('monthly')} · ${t('next')} ${esc(dShort(r.next))}</small></div>
+      <span class="num">${fmt(r.amount)}</span><button class="iconbtn" data-delrec="${esc(r.id)}" aria-label="${t('del')}">×</button></div>`).join(''):`<div class="hint" style="color:var(--muted)">${t('noRec')}</div>`}
+    <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
+      <div class="rowf"><label class="f">${t('name')}<input class="inp" id="recName" placeholder="${t('namePh')}"></label>
+        <label class="f">${t('amount')}<input class="inp num" id="recAmt" inputmode="decimal" placeholder="0.00"></label></div>
+      <div class="rowf"><label class="f">${t('category')}<select class="inp" id="recCat">${liveCats().map(c=>`<option value="${esc(c.id)}">${esc(catName(c))}</option>`).join('')}</select></label>
+        <label class="f">${t('per')}<select class="inp" id="recFreq"><option value="monthly">${t('monthly')}</option><option value="weekly">${t('weekly')}</option></select></label></div>
+      <label class="f">${t('next')} — ${t('date')}<input class="inp" type="date" id="recNext" value="${todayStr()}"></label>
+      <div class="err" id="recErr"></div>
+      <button class="btn" data-addrec>${t('addRec')}</button>
+    </div>
+  </div></div>${backupHTML()}</div>`;
+}
+
+/* ---------- AI savings recommendation (Claude API, key kept on this device) ---------- */
+const MODEL='claude-sonnet-5-5';
+let apiKey=LS.get('paricnik.apikey','');
+function aiHTML(){
+  if(!apiKey)return `<div class="ai"><b>${t('aiKeyTitle')}</b><p class="small-note">${t('aiKeyHint')}</p>
+    <p class="small-note">${t('aiKeyWhere')} <span style="user-select:all;font-family:var(--f-num)">console.anthropic.com</span></p>
+    <div class="rowf"><input class="inp" id="apiKeyInp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${t('aiKeyPh')}" aria-label="API key">
+    <button class="btn small" data-savekey style="flex:0 0 auto">${t('aiKeySave')}</button></div>
+    ${ai.msg?`<div class="err">${esc(ai.msg)}</div>`:''}</div>`;
+  if(ai.state==='working')return `<div class="ai"><span class="thinking">${t('aiWorking')}</span></div>`;
+  if(ai.state==='done'&&ai.rec){const r=ai.rec;
+    return `<div class="ai"><small style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em">${t('aiSuggest')}</small>
+      <div class="rec-val">${r.mode==='amt'?fmt(r.value):r.value+'%'} <span style="font-family:var(--f-body);font-size:14px;font-weight:500;color:var(--muted)">${t('perPay')}</span></div>
+      <p>${esc(r.reason)}</p>
+      <div class="actions"><button class="btn ghost small" data-aino>${t('aiDismiss')}</button><button class="btn small" data-aiyes>${t('aiAccept')}</button></div></div>`}
+  return `${ai.msg?`<div class="err">${esc(ai.msg)}</div>`:''}<button class="btn ghost" data-ai>✦ ${ai.rec?t('aiRedo'):t('aiRec')}</button>
+    <button class="linkbtn" data-delkey style="color:var(--muted);font-weight:500">${t('aiKeyRemove')}</button>`;
+}
+function drawAI(){const b=document.getElementById('aiBox');if(b)b.innerHTML=aiHTML()}
+async function askAI(){
+  if(!apiKey||ai.state==='working')return;
+  if(navigator.onLine===false){ai={state:'idle',rec:null,msg:t('aiOffline')};drawAI();return}
+  const ps=periods().filter(p=>!p.pre).slice(-8);
+  const nm=c=>c.name||c.en;
+  const data={
+    paychecks:ps.map(p=>({start:p.start,daysCovered:p.days,income:p.income,spent:p.spent,
+      byCategory:Object.fromEntries(Object.entries(p.byCat).map(([k,v])=>[nm(cat(k)),v]))})),
+    categoryLimitsPerPeriod:Object.fromEntries(Object.entries(settings.limits||{}).map(([k,v])=>[nm(cat(k)),v])),
+    recurringExpenses:(settings.recurring||[]).map(r=>({name:r.name,amount:r.amount,frequency:r.freq})),
+    goal:{name:settings.saving.goalName||null,target:+settings.saving.goalTarget||null,byDate:settings.saving.goalDate||null,alreadySaved:totalSaved()},
+    today:todayStr()};
+  const langLine=lang==='mk'?'Write "reason" in Macedonian, Cyrillic script.':'Write "reason" in English.';
+  const prompt=`You are a careful personal-budget assistant. A person in the US tracks their spending in US dollars from paycheck to paycheck (each paycheck starts a period; most are weekly). Using the data below, recommend how much they should move to savings from EACH paycheck.
+Rules: keep enough for their typical spending per period and their recurring bills (monthly bills spread across paychecks); if there is a goal with a date, check whether it is reachable and say so; if there is little or no data, give a cautious starter recommendation and say it will improve as they log more.
+Reply with ONLY a JSON object, no other text: {"mode":"pct" or "amt","value":number,"reason":"2-3 short sentences that mention the key numbers in dollars"}. Use "pct" (whole number percent of the paycheck) when paychecks vary, "amt" (dollars) when they are steady. ${langLine}
+
+DATA:
+${JSON.stringify(data)}`;
+  ai={state:'working',rec:ai.rec,msg:''};drawAI();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:MODEL,max_tokens:700,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok){
+      let body='';try{body=JSON.stringify(await res.json())}catch(_){}
+      throw {code:res.status===401||res.status===403?'badkey':res.status===429?'limit':/credit/i.test(body)?'credit':'err'};
+    }
+    const j=await res.json();
+    const text=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+    const m=text.slice(text.indexOf('{'),text.lastIndexOf('}')+1);
+    const r=JSON.parse(m);
+    const mode=r.mode==='amt'?'amt':'pct';const value=r2(Math.max(0,+r.value||0));
+    ai={state:'done',rec:{mode,value:mode==='pct'?Math.min(100,Math.round(value)):value,reason:String(r.reason||'')},msg:''};
+  }catch(e){
+    const c=e&&e.code;
+    ai={state:'idle',rec:null,msg:c==='badkey'?t('aiBadKey'):c==='limit'?t('aiLimit'):c==='credit'?t('aiCredit'):navigator.onLine===false?t('aiOffline'):t('aiErr')};
+  }
+  drawAI();
+}
+
+/* ---------- backup ---------- */
+let pendingImport=null;
+function backupHTML(){
+  const last=LS.get('paricnik.lastBackup','');
+  return `<div class="sec" id="sec-backup"><div class="sec-h"><h2>${t('backup')}</h2></div><div class="card">
+    <p class="small-note">${t('backupHint')}</p>
+    <p class="small-note">${last?t('lastBackup')(dLong(last)):t('noBackup')}</p>
+    ${pendingImport?`<div class="alert" style="background:var(--warn-soft);color:var(--warn)">${t('importConfirm')(txs.length,pendingImport.txs.length)}</div>
+      <div class="actions"><button class="btn ghost" data-impno>${t('cancel')}</button><button class="btn" data-impyes>${t('importYes')}</button></div>`:
+    `<div class="actions"><button class="btn" data-export>${t('exportBtn')}</button><button class="btn ghost" data-import>${t('importBtn')}</button></div>`}
+    <div class="err" id="impErr"></div>
+    <input type="file" id="impFile" accept=".json,application/json" hidden>
+  </div></div>`;
+}
+async function exportBackup(){
+  const payload={app:'paricnik',version:1,exported:new Date().toISOString(),settings,txs};
+  const name=`paricnik-backup-${todayStr()}.json`;
+  const blob=new Blob([JSON.stringify(payload,null,1)],{type:'application/json'});
+  let done=false;
+  try{
+    const file=new File([blob],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});done=true}
+  }catch(e){if(e&&e.name==='AbortError')return}
+  if(!done){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);}
+  LS.set('paricnik.lastBackup',todayStr());toast(t('exported'));render();
+}
+function readImport(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{const d=JSON.parse(fr.result);
+      if(!d||d.app!=='paricnik'||!Array.isArray(d.txs)||typeof d.settings!=='object')throw 0;
+      pendingImport=d;render();document.getElementById('sec-backup')?.scrollIntoView({block:'center'});
+    }catch(_){const e=document.getElementById('impErr');if(e)e.textContent=t('importBad')}
+  };
+  fr.readAsText(file);
+}
+function toast(m){const el=document.createElement('div');el.className='toast';el.setAttribute('role','status');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),2400)}
+
+/* ---------- sheet ---------- */
+const host=document.getElementById('sheetHost');
+let sheet=null;
+function openSheet(type,edit){
+  const x=edit?{...edit}:{type:type||'expense',amount:'',catId:liveCats()[0]?.id||'other',date:todayStr(),note:'',days:7};
+  sheet={x,confirm:false,err:''};drawSheet();
+  setTimeout(()=>document.getElementById('sAmt')?.focus(),60);
+}
+function drawSheet(){
+  if(!sheet){host.innerHTML='';return}
+  const {x}=sheet;const editing=!!x.id;
+  host.innerHTML=`<div class="scrim" data-close><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+   <h3 id="sTitle">${editing?t('editTitle'):t('newTitle')}</h3>
+   <div class="seg" role="group">${['expense','salary','income'].map(k=>`<button data-stype="${k}" aria-pressed="${x.type===k}">${t(k==='income'?'otherIncome':k)}</button>`).join('')}</div>
+   <label class="f">${t('amount')}<input class="amt-inp num" id="sAmt" inputmode="decimal" placeholder="$0.00" value="${x.amount}"></label>
+   ${x.type==='expense'?`<div class="f" style="font-size:12px;color:var(--muted)">${t('category')}<div class="chips" style="margin-top:6px">
+      ${liveCats().map(c=>`<button data-scat="${esc(c.id)}" aria-pressed="${x.catId===c.id}"><i class="dot" style="background:${c.color}"></i>${esc(catName(c))}</button>`).join('')}</div></div>`:''}
+   ${x.type==='salary'?`<div class="f" style="font-size:12px;color:var(--muted)">${t('days')}<div class="daypick" style="margin-top:6px">
+      ${[7,14,15,30].map(n=>`<button data-sdays="${n}" aria-pressed="${+x.days===n}">${n}</button>`).join('')}
+      <input class="inp num" id="sDays" inputmode="numeric" style="width:90px;flex:none" value="${x.days}" aria-label="${t('days')}"></div></div>
+    <label class="f">${t('saveField')}<input class="inp num" id="sSave" inputmode="decimal" placeholder="${t('saveFieldHint')}" value="${x.save??''}"></label>`:''}
+   <div class="rowf"><label class="f">${t('date')}<input class="inp" type="date" id="sDate" value="${x.date}"></label>
+     <label class="f">${t('note')}<input class="inp" id="sNote" placeholder="${t('notePh')}" value="${esc(x.note)}"></label></div>
+   ${sheet.err?`<div class="err">${esc(sheet.err)}</div>`:''}
+   ${sheet.confirm?`<div class="alert">${t('confirmDel')}</div><div class="actions"><button class="btn ghost" data-sconfirm="no">${t('cancel')}</button><button class="btn danger" data-sconfirm="yes">${t('yesDel')}</button></div>`:
+   `<div class="actions">${editing?`<button class="btn danger" data-sdel>${t('del')}</button>`:`<button class="btn ghost" data-close>${t('cancel')}</button>`}<button class="btn" data-ssave>${t('save')}</button></div>`}
+  </div></div>`;
+}
+function readSheet(){
+  const x=sheet.x;
+  x.amount=document.getElementById('sAmt').value;
+  x.date=document.getElementById('sDate').value||todayStr();
+  x.note=document.getElementById('sNote').value.trim();
+  const d=document.getElementById('sDays');if(d)x.days=d.value;
+  const sv=document.getElementById('sSave');if(sv)x.save=sv.value;
+}
+const parseAmt=v=>{const n=parseFloat(String(v).replace(/[$\s]/g,'').replace(',','.'));return isFinite(n)?r2(n):0};
+async function saveSheet(){
+  readSheet();const x=sheet.x;const amt=parseAmt(x.amount);
+  if(amt<=0){sheet.err=t('errAmt');drawSheet();return}
+  const doc={type:x.type,amount:amt,date:x.date,note:x.note,created:x.created||Date.now()};
+  if(x.type==='expense')doc.catId=x.catId;
+  if(x.type==='salary'){doc.days=Math.max(1,parseInt(x.days)||7);
+    doc.save=(x.save===undefined||String(x.save).trim()==='')?saveFor(amt):Math.min(amt,parseAmt(x.save))}
+  if(x.recId)doc.recId=x.recId;
+  const id=x.id||uid();
+  try{await putTx(id,doc);sheet=null;drawSheet()}catch(e){sheet.err=t('saveErr');drawSheet()}
+}
+
+/* ---------- storage (this device) ---------- */
+function persistTx(){if(!LS.set('paricnik.tx',txs))showNotice(t('saveErr'))}
+async function putTx(id,doc){
+  const i=txs.findIndex(x=>x.id===id);const v={...doc,id};if(i>=0)txs[i]=v;else txs.push(v);
+  persistTx();safeRender();
+}
+async function delTx(id){txs=txs.filter(x=>x.id!==id);persistTx();safeRender()}
+function saveSettings(){
+  if(!LS.set('paricnik.settings',settings))showNotice(t('saveErr'));
+  safeRender();return Promise.resolve();
+}
+function showNotice(m){const n=document.getElementById('notice');n.textContent=m;n.hidden=!m}
+
+async function runRecurring(){
+  if(recurringDone||!ready.s||!ready.t)return;recurringDone=true;
+  const today=todayStr();let changed=false;
+  for(const r of settings.recurring||[]){
+    let guard=0;
+    while(r.next<=today&&guard++<60){
+      const id=`r-${r.id}-${r.next}`;
+      if(!txs.some(x=>x.id===id)){
+        try{await putTx(id,{type:'expense',amount:r.amount,catId:r.catId,date:r.next,note:r.name,recId:r.id,created:Date.now()})}catch(e){}
+      }
+      r.next=r.freq==='weekly'?addDays(r.next,7):addMonth(r.next);changed=true;
+    }
+  }
+  if(changed)saveSettings();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button,[data-close]');if(!b)return;
+  const d=b.dataset;
+  if(d.lang){lang=d.lang;LS.set('paricnik.lang',lang);render();drawSheet();return}
+  if(d.tab){tab=d.tab;render();const g=d.goto&&document.getElementById('sec-'+d.goto);
+    if(g)g.scrollIntoView({block:'start'});else window.scrollTo(0,0);return}
+  if(b.id==='fab'){openSheet('expense');return}
+  if(d.new){openSheet(d.new);return}
+  if(d.edit){const x=txs.find(y=>y.id===d.edit);if(x)openSheet(null,{...x,amount:x.amount.toFixed(2),days:x.days||7,note:x.note||'',save:x.type==='salary'?(x.save??''):undefined});return}
+  if('clearfilt' in d){filt={q:'',cat:'',from:'',to:''};render();return}
+  if('ai' in d){askAI();return}
+  if('savekey' in d){const v=(document.getElementById('apiKeyInp')?.value||'').trim();
+    if(!/^sk-ant-/.test(v)){ai={state:'idle',rec:null,msg:t('aiBadKey')};drawAI();return}
+    apiKey=v;LS.set('paricnik.apikey',v);ai={state:'idle',rec:null,msg:''};drawAI();return}
+  if('delkey' in d){apiKey='';try{localStorage.removeItem('paricnik.apikey')}catch(_){}ai={state:'idle',rec:null,msg:''};drawAI();return}
+  if('export' in d){exportBackup();return}
+  if('import' in d){document.getElementById('impFile')?.click();return}
+  if('impno' in d){pendingImport=null;render();return}
+  if('impyes' in d){const p=pendingImport;pendingImport=null;txs=p.txs;
+    settings={...defaults(),...p.settings};settings.limits=settings.limits||{};settings.saving={...defaults().saving,...(p.settings.saving||{})};
+    persistTx();await saveSettings();recurringDone=false;runRecurring();toast(t('imported'));render();return}
+  if('aino' in d){ai={state:'idle',rec:null,msg:''};drawAI();return}
+  if('aiyes' in d){const r=ai.rec;if(r){settings.saving={...settings.saving,mode:r.mode,value:r.value};ai={state:'idle',rec:null,msg:''};
+    await saveSettings();applySaveToCurrent()}return}
+  if(d.smode){settings.saving={...settings.saving,mode:d.smode,value:0};await saveSettings();applySaveToCurrent();return}
+  if(d.period){openPeriod=openPeriod===d.period?null:d.period;render();return}
+  // sheet
+  if('close' in d){if(e.target===b){sheet=null;drawSheet()}return}
+  if(d.stype){readSheet();sheet.x.type=d.stype;drawSheet();return}
+  if(d.scat){readSheet();sheet.x.catId=d.scat;drawSheet();return}
+  if(d.sdays){readSheet();sheet.x.days=d.sdays;drawSheet();return}
+  if('ssave' in d){saveSheet();return}
+  if('sdel' in d){readSheet();sheet.confirm=true;drawSheet();return}
+  if(d.sconfirm){if(d.sconfirm==='yes'){try{await delTx(sheet.x.id);sheet=null}catch(_){sheet.err=t('saveErr');sheet.confirm=false}}else sheet.confirm=false;drawSheet();return}
+  // settings
+  if(d.bmode){settings.budgetMode=d.bmode;saveSettings();return}
+  if(d.swatch){newCatColor=d.swatch;document.querySelectorAll('[data-swatch]').forEach(s=>s.setAttribute('aria-pressed',s.dataset.swatch===newCatColor));return}
+  if('addcat' in d){const inp=document.getElementById('newCat');const name=inp.value.trim();
+    if(!name){document.getElementById('catErr').textContent=t('errName');return}
+    settings.categories.splice(settings.categories.length-1,0,{id:'c'+uid(),name,color:newCatColor});saveSettings();return}
+  if(d.delcat){const c=settings.categories.find(c=>c.id===d.delcat);if(c){c.archived=true;delete settings.limits[c.id];saveSettings()}return}
+  if('addrec' in d){const name=document.getElementById('recName').value.trim();const amt=parseAmt(document.getElementById('recAmt').value);
+    const err=document.getElementById('recErr');if(!name){err.textContent=t('errName');return}if(amt<=0){err.textContent=t('errAmt');return}
+    settings.recurring=[...(settings.recurring||[]),{id:uid(),name,amount:amt,catId:document.getElementById('recCat').value,freq:document.getElementById('recFreq').value,next:document.getElementById('recNext').value||todayStr()}];
+    recurringDone=false;await saveSettings();runRecurring();return}
+  if(d.delrec){settings.recurring=settings.recurring.filter(r=>r.id!==d.delrec);saveSettings();return}
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.dataset.limit){const v=parseAmt(el.value);if(v>0)settings.limits[el.dataset.limit]=v;else delete settings.limits[el.dataset.limit];saveSettings()}
+  if(el.id==='fixedBudget'){settings.fixedBudget=parseAmt(el.value);saveSettings()}
+  if(el.id==='gName'){settings.saving={...settings.saving,goalName:el.value.trim()};saveSettings()}
+  if(el.id==='gTarget'){settings.saving={...settings.saving,goalTarget:parseAmt(el.value)};saveSettings()}
+  if(el.id==='gDate'){settings.saving={...settings.saving,goalDate:el.value};saveSettings()}
+  if(el.id==='sVal'){let v=parseAmt(el.value);if(settings.saving.mode!=='amt')v=Math.min(100,v);
+    settings.saving={...settings.saving,value:Math.max(0,v)};saveSettings().then(applySaveToCurrent)}
+  if(el.id==='impFile'&&el.files&&el.files[0]){readImport(el.files[0]);el.value=''}
+  if(el.id==='fCat'||el.id==='fFrom'||el.id==='fTo'){filt[{fCat:'cat',fFrom:'from',fTo:'to'}[el.id]]=el.value;drawHistoryBody()}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='fQ'){filt.q=e.target.value;drawHistoryBody()}
+});
+function drawHistoryBody(){const h=document.getElementById('hbody');if(h)h.innerHTML=historyBody()}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&sheet){sheet=null;drawSheet()}
+  if(e.key==='Enter'&&sheet&&e.target.closest('.sheet')&&e.target.tagName==='INPUT'){e.preventDefault();saveSheet()}
+  if(e.key==='Enter'&&e.target.dataset.limit)e.target.blur();
+});
+
+/* ---------- boot ---------- */
+function safeRender(){
+  const a=document.activeElement;
+  if(tab==='settings'&&a&&view.contains(a)&&a.tagName!=='BUTTON'&&a.type!=='file'){a.addEventListener('blur',()=>setTimeout(render,0),{once:true});return}
+  if(tab==='history'&&document.getElementById('hbody')){drawHistoryBody();return}
+  render();
+}
+(function load(){
+  const s=LS.get('paricnik.settings',null);
+  if(s){settings={...defaults(),...s};settings.limits=settings.limits||{};settings.saving={...defaults().saving,...(s.saving||{})}}
+  txs=LS.get('paricnik.tx',[]);
+  ready={s:true,t:true};
+  render();runRecurring();
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+  if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  // new day while the app stays open: re-run recurring and refresh "days left"
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){recurringDone=false;runRecurring();safeRender()}});
+})();
+</script>
+</body>
+</html>
