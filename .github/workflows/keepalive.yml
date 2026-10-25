@@ -1,0 +1,22 @@
+name: Одржувај ги известувањата
+
+# GitHub pauses scheduled workflows after 60 days without changes in the repo.
+# Once a month this re-enables the evening notification so it never stops on its own.
+on:
+  schedule:
+    - cron: '17 12 1 * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          gh workflow enable notify.yml --repo "$GITHUB_REPOSITORY"
+          gh workflow enable keepalive.yml --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}

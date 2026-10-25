@@ -213,6 +213,13 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
 [hidden]{display:none!important}
 img{max-width:100%}
 .small-note{font-size:12px;color:var(--muted);margin:0}
+.codebox{width:100%;min-height:84px;resize:none;font-family:var(--f-num);font-size:11px;line-height:1.35;word-break:break-all;background:var(--sunk);
+  border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--fg)}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.steps code,.mono{font-family:var(--f-num);font-size:13px;background:var(--sunk);padding:1px 6px;border-radius:6px;user-select:all;word-break:break-all}
+.status{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.status i{width:9px;height:9px;border-radius:99px;background:var(--accent);flex:none}
+.status.off i{background:var(--muted)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);
   padding:10px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:30;max-width:calc(100% - 32px)}
 </style>
@@ -265,6 +272,17 @@ mk:{tag:'Трошоци од плата до плата',home:'Преглед',h
  aiKeyWhere:'Клуч правиш на',aiKeyPh:'sk-ant-…',aiKeySave:'Зачувај',aiKeyRemove:'Избриши го API клучот',
  aiBadKey:'Клучот не е точен. Треба да почнува со sk-ant-. Провери го и внеси го повторно.',aiCredit:'Немаш кредит на API сметката. Додај кредит на console.anthropic.com.',
  aiOffline:'Нема интернет. Препораката бара врска.',
+ notif:'Известувања',notifHint:'Секоја вечер во 21 ч.: потсетник за трошоците, за платата на денот на плата и за повторувачки трошоци што доаѓаат утре.',
+ notifNotApp:'Известувањата работат само кога Паричник е отворен од иконата на почетниот екран. Во Safari: Сподели → Add to Home Screen.',
+ notifNoSupport:'Овој телефон не поддржува известувања за веб апликации. Потребен е iOS 16.4 или понов.',
+ notifDenied:'Известувањата се одбиени. Вклучи ги во Settings → Notifications → Паричник, па врати се тука.',
+ payday:'Ден на плата',notifOn:'Вклучи известувања',notifOnNow:'Вклучени на овој телефон',notifOff:'Исклучи известувања',
+ notifWorking:'Се вклучува…',notifErr:'Не успеав да ги вклучам известувањата. Обиди се повторно.',
+ notifPreview:'Покажи го вечерното известување',notifStepsTitle:'Последен чекор: стави го кодот во GitHub',
+ notifStep1:'Копирај го кодот подолу.',notifStep2:'Отвори',notifStep3:'Во Name напиши',notifStep4:'Во Secret залепи го кодот и притисни Add secret.',
+ notifCodeWarn:'Кодот е таен: не го праќај никому. Служи само за твоето GitHub репо.',copy:'Копирај',copied:'Копирано',
+ notifDone:'Готово, го ставив во GitHub',notifShowCode:'Покажи го кодот за GitHub повторно',notifReady:'Известувањата ќе стигнуваат секоја вечер околу 21 ч.',
+ days7:['Недела','Понеделник','Вторник','Среда','Четврток','Петок','Сабота'],
  saveErr:'Не успеав да зачувам. Провери ја врската и обиди се пак.',errAmt:'Внеси износ поголем од 0.',errName:'Внеси име.',
  auto:'автоматски',salaryN:'Плата',per:'период',
  saving:'Штедење',goalTitle:'Цел за штедење',goalName:'Име на целта',goalNamePh:'на пр. Итни случаи',goalTarget:'Колку сакаш да заштедиш ($)',
@@ -302,6 +320,17 @@ en:{tag:'Spending from paycheck to paycheck',home:'Overview',history:'History',s
  aiKeyWhere:'Create a key at',aiKeyPh:'sk-ant-…',aiKeySave:'Save',aiKeyRemove:'Remove API key',
  aiBadKey:'That key isn’t right. It should start with sk-ant-. Check it and enter it again.',aiCredit:'Your API account has no credit. Add credit at console.anthropic.com.',
  aiOffline:'No internet. The recommendation needs a connection.',
+ notif:'Notifications',notifHint:'Every evening at 9 pm: a reminder for your expenses, your paycheck on payday, and recurring expenses due tomorrow.',
+ notifNotApp:'Notifications only work when Паричник is opened from its Home Screen icon. In Safari: Share → Add to Home Screen.',
+ notifNoSupport:'This phone doesn’t support notifications for web apps. It needs iOS 16.4 or newer.',
+ notifDenied:'Notifications are turned off. Turn them on in Settings → Notifications → Паричник, then come back here.',
+ payday:'Payday',notifOn:'Turn on notifications',notifOnNow:'On for this phone',notifOff:'Turn off notifications',
+ notifWorking:'Turning on…',notifErr:'Couldn’t turn on notifications. Try again.',
+ notifPreview:'Show tonight’s notification',notifStepsTitle:'Last step: add the code to GitHub',
+ notifStep1:'Copy the code below.',notifStep2:'Open',notifStep3:'For Name type',notifStep4:'Paste the code into Secret and tap Add secret.',
+ notifCodeWarn:'The code is secret: don’t send it to anyone. It’s only for your GitHub repo.',copy:'Copy',copied:'Copied',
+ notifDone:'Done, it’s in GitHub',notifShowCode:'Show the GitHub code again',notifReady:'Notifications will arrive every evening around 9 pm.',
+ days7:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
  saveErr:'Couldn’t save. Check your connection and try again.',errAmt:'Enter an amount above 0.',errName:'Enter a name.',
  auto:'auto',salaryN:'Paycheck',per:'period',
  saving:'Savings',goalTitle:'Savings goal',goalName:'Goal name',goalNamePh:'e.g. Emergency fund',goalTarget:'How much to save ($)',
@@ -580,7 +609,7 @@ function settingsHTML(){
       <div class="err" id="recErr"></div>
       <button class="btn" data-addrec>${t('addRec')}</button>
     </div>
-  </div></div>${backupHTML()}</div>`;
+  </div></div>${notifHTML()}${backupHTML()}</div>`;
 }
 
 /* ---------- AI savings recommendation (Claude API, key kept on this device) ---------- */
@@ -641,6 +670,82 @@ ${JSON.stringify(data)}`;
     ai={state:'idle',rec:null,msg:c==='badkey'?t('aiBadKey'):c==='limit'?t('aiLimit'):c==='credit'?t('aiCredit'):navigator.onLine===false?t('aiOffline'):t('aiErr')};
   }
   drawAI();
+}
+
+/* ---------- notifications ---------- */
+const SECRETS_URL='https://github.com/darionmitoski20-del/paricnik/settings/secrets/actions/new';
+const SECRET_NAME='PARICNIK_PUSH';
+let swReg=null,push=LS.get('paricnik.push',null),notifBusy=false,notifMsg='';
+const isStandalone=()=>{try{return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
+const pushSupported=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const b64u=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const fromB64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+// One key pair per phone, made here so nothing secret ever leaves the phone except in the code you paste into GitHub.
+async function ensureVapid(){
+  let v=LS.get('paricnik.vapid',null);if(v&&v.pub&&v.priv)return v;
+  const kp=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  const pub=b64u(new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey)));
+  const priv=(await crypto.subtle.exportKey('jwk',kp.privateKey)).d;
+  v={pub,priv};LS.set('paricnik.vapid',v);return v;
+}
+function pushCode(sub,v){
+  const tz=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'America/New_York'}catch(e){return 'America/New_York'}})();
+  return btoa(JSON.stringify({v:1,sub,pub:v.pub,priv:v.priv,tz,subject:'https://darionmitoski20-del.github.io/paricnik/'}));
+}
+function notifHTML(){
+  const pd=Number.isInteger(settings.payday)?settings.payday:5;
+  const daySel=`<label class="f">${t('payday')}<select class="inp" id="paydaySel">${t('days7').map((d,i)=>`<option value="${i}" ${i===pd?'selected':''}>${d}</option>`).join('')}</select></label>`;
+  let body='';
+  if(!isStandalone())body=`<p class="small-note">${t('notifNotApp')}</p>`;
+  else if(!pushSupported())body=`<p class="small-note">${t('notifNoSupport')}</p>`;
+  else if(Notification.permission==='denied')body=`<p class="small-note">${t('notifDenied')}</p>`;
+  else if(!push)body=`${daySel}${notifMsg?`<div class="err">${esc(notifMsg)}</div>`:''}<button class="btn" data-notifon ${notifBusy?'disabled':''}>${notifBusy?t('notifWorking'):t('notifOn')}</button>`;
+  else{
+    const steps=!push.done?`<div class="ai" style="border-style:solid"><b>${t('notifStepsTitle')}</b>
+      <ol class="steps"><li>${t('notifStep1')}</li>
+        <li>${t('notifStep2')} <a href="${SECRETS_URL}" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">github.com/darionmitoski20-del/paricnik/settings/secrets/actions/new</a></li>
+        <li>${t('notifStep3')} <code>${SECRET_NAME}</code></li><li>${t('notifStep4')}</li></ol>
+      <textarea class="codebox" id="pushCode" readonly aria-label="GitHub code">${esc(push.code)}</textarea>
+      <p class="small-note">${t('notifCodeWarn')}</p>
+      <div class="actions"><button class="btn ghost small" data-copycode>${t('copy')}</button><button class="btn small" data-notifdone>${t('notifDone')}</button></div></div>`
+      :`<p class="small-note">${t('notifReady')}</p><button class="linkbtn" data-notifcode>${t('notifShowCode')}</button>`;
+    body=`<div class="status"><i></i>${t('notifOnNow')}</div>${daySel}${steps}
+      <div class="actions"><button class="btn ghost small" data-notifpreview>${t('notifPreview')}</button><button class="btn danger small" data-notifoff>${t('notifOff')}</button></div>`;
+  }
+  return `<div class="sec" id="sec-notif"><div class="sec-h"><h2>${t('notif')}</h2></div><div class="card">
+    <p class="small-note">${t('notifHint')}</p>${body}</div></div>`;
+}
+async function turnOnNotif(){
+  if(notifBusy)return;
+  // Ask first, straight from the tap, as iPhone requires.
+  const permP=Notification.requestPermission();
+  notifBusy=true;notifMsg='';safeRender();
+  try{
+    const perm=await permP;
+    if(perm!=='granted')throw new Error('denied');
+    const v=await ensureVapid();
+    const reg=swReg||await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(sub){const k=sub.options&&sub.options.applicationServerKey;
+      if(!k||b64u(new Uint8Array(k))!==v.pub){await sub.unsubscribe();sub=null}}
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:fromB64u(v.pub)});
+    push={code:pushCode(sub.toJSON(),v),done:false,on:todayStr()};LS.set('paricnik.push',push);
+    syncNotifyState();
+  }catch(e){notifMsg=Notification.permission==='denied'?'':t('notifErr')}
+  notifBusy=false;render();document.getElementById('sec-notif')?.scrollIntoView({block:'start'});
+}
+async function turnOffNotif(){
+  try{const reg=swReg||await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe()}catch(e){}
+  push=null;try{localStorage.removeItem('paricnik.push')}catch(e){}render();
+}
+// Copy of the data the evening notification reads (the notification part of the app can't see localStorage).
+function syncNotifyState(){
+  if(!('caches' in window))return;
+  const from=addDays(todayStr(),-3);
+  const state={lang,payday:Number.isInteger(settings.payday)?settings.payday:5,
+    txs:txs.filter(x=>x.date>=from).map(x=>({type:x.type,amount:x.amount,date:x.date})),
+    recurring:(settings.recurring||[]).map(r=>({name:r.name,amount:r.amount,freq:r.freq,next:r.next}))};
+  caches.open('paricnik-state').then(c=>c.put('./__notify-state.json',new Response(JSON.stringify(state),{headers:{'content-type':'application/json'}}))).catch(()=>{});
 }
 
 /* ---------- backup ---------- */
@@ -732,7 +837,7 @@ async function saveSheet(){
 }
 
 /* ---------- storage (this device) ---------- */
-function persistTx(){if(!LS.set('paricnik.tx',txs))showNotice(t('saveErr'))}
+function persistTx(){if(!LS.set('paricnik.tx',txs))showNotice(t('saveErr'));syncNotifyState()}
 async function putTx(id,doc){
   const i=txs.findIndex(x=>x.id===id);const v={...doc,id};if(i>=0)txs[i]=v;else txs.push(v);
   persistTx();safeRender();
@@ -740,6 +845,7 @@ async function putTx(id,doc){
 async function delTx(id){txs=txs.filter(x=>x.id!==id);persistTx();safeRender()}
 function saveSettings(){
   if(!LS.set('paricnik.settings',settings))showNotice(t('saveErr'));
+  syncNotifyState();
   safeRender();return Promise.resolve();
 }
 function showNotice(m){const n=document.getElementById('notice');n.textContent=m;n.hidden=!m}
@@ -764,7 +870,7 @@ async function runRecurring(){
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button,[data-close]');if(!b)return;
   const d=b.dataset;
-  if(d.lang){lang=d.lang;LS.set('paricnik.lang',lang);render();drawSheet();return}
+  if(d.lang){lang=d.lang;LS.set('paricnik.lang',lang);syncNotifyState();render();drawSheet();return}
   if(d.tab){tab=d.tab;render();const g=d.goto&&document.getElementById('sec-'+d.goto);
     if(g)g.scrollIntoView({block:'start'});else window.scrollTo(0,0);return}
   if(b.id==='fab'){openSheet('expense');return}
@@ -776,6 +882,13 @@ document.addEventListener('click',async e=>{
     if(!/^sk-ant-/.test(v)){ai={state:'idle',rec:null,msg:t('aiBadKey')};drawAI();return}
     apiKey=v;LS.set('paricnik.apikey',v);ai={state:'idle',rec:null,msg:''};drawAI();return}
   if('delkey' in d){apiKey='';try{localStorage.removeItem('paricnik.apikey')}catch(_){}ai={state:'idle',rec:null,msg:''};drawAI();return}
+  if('notifon' in d){turnOnNotif();return}
+  if('notifoff' in d){turnOffNotif();return}
+  if('notifdone' in d){push={...push,done:true};LS.set('paricnik.push',push);render();return}
+  if('notifcode' in d){push={...push,done:false};LS.set('paricnik.push',push);render();document.getElementById('sec-notif')?.scrollIntoView({block:'start'});return}
+  if('notifpreview' in d){syncNotifyState();try{const reg=swReg||await navigator.serviceWorker.ready;setTimeout(()=>reg.active&&reg.active.postMessage({type:'preview'}),150)}catch(_){}return}
+  if('copycode' in d){const ta=document.getElementById('pushCode');
+    try{await navigator.clipboard.writeText(push.code);b.textContent=t('copied')}catch(_){ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length)}return}
   if('export' in d){exportBackup();return}
   if('import' in d){document.getElementById('impFile')?.click();return}
   if('impno' in d){pendingImport=null;render();return}
@@ -817,6 +930,7 @@ document.addEventListener('change',e=>{
   if(el.id==='gDate'){settings.saving={...settings.saving,goalDate:el.value};saveSettings()}
   if(el.id==='sVal'){let v=parseAmt(el.value);if(settings.saving.mode!=='amt')v=Math.min(100,v);
     settings.saving={...settings.saving,value:Math.max(0,v)};saveSettings().then(applySaveToCurrent)}
+  if(el.id==='paydaySel'){settings.payday=parseInt(el.value);saveSettings()}
   if(el.id==='impFile'&&el.files&&el.files[0]){readImport(el.files[0]);el.value=''}
   if(el.id==='fCat'||el.id==='fFrom'||el.id==='fTo'){filt[{fCat:'cat',fFrom:'from',fTo:'to'}[el.id]]=el.value;drawHistoryBody()}
 });
@@ -844,7 +958,13 @@ function safeRender(){
   ready={s:true,t:true};
   render();runRecurring();
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
-  if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>{swReg=r}).catch(()=>{}));
+    navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='go'){tab=e.data.tab||'home';sheet=null;drawSheet();render();window.scrollTo(0,0)}});
+  }
+  syncNotifyState();
+  // pre-make the key pair so the "turn on" tap only has to ask for permission
+  if(isStandalone()&&pushSupported()&&!push)ensureVapid().catch(()=>{});
   // new day while the app stays open: re-run recurring and refresh "days left"
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){recurringDone=false;runRecurring();safeRender()}});
 })();

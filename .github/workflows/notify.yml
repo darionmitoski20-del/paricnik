@@ -1,0 +1,26 @@
+name: Вечерно известување
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 21:00 in New York during daylight saving time
+    - cron: '0 2 * * *'   # 21:00 in New York the rest of the year
+  workflow_dispatch:       # "Run workflow" button: sends a test notification right away
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --no-audit --no-fund web-push@3.6.7
+      - run: node .github/scripts/notify.mjs
+        env:
+          PARICNIK_PUSH: ${{ secrets.PARICNIK_PUSH }}
+          SCHEDULE: ${{ github.event.schedule }}
+          EVENT_NAME: ${{ github.event_name }}
