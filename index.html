@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Paričnik</title>
+<title>Wallet</title>
 <meta name="description" content="Spending from paycheck to paycheck">
 <meta name="theme-color" content="#1E6B4E">
 <link rel="manifest" href="manifest.webmanifest">
@@ -228,7 +228,7 @@ img{max-width:100%}
 
 <div class="wrap">
   <header class="top">
-    <div class="brand"><span id="brandname">Paričnik</span><small id="tagline"></small></div>
+    <div class="brand"><span id="brandname">Wallet</span><small id="tagline"></small></div>
     <div class="langsw" role="group" aria-label="Language">
       <button id="lang-mk" data-lang="mk">МК</button>
       <button id="lang-en" data-lang="en">EN</button>
@@ -315,13 +315,13 @@ en:{tag:'Spending from paycheck to paycheck',home:'Overview',history:'History',s
  backup:'Backup',backupHint:'Your data lives only on this phone. Save a copy to Files or iCloud Drive so you don’t lose it if you change or reset your phone.',
  exportBtn:'Save a copy',importBtn:'Restore from copy',lastBackup:d=>`Last copy: ${d}`,noBackup:'You haven’t saved a copy yet.',
  importConfirm:(a,b)=>`Your current data (${a} entries) will be replaced by the copy (${b} entries).`,importYes:'Yes, restore',
- importBad:'This file isn’t a Paričnik backup.',imported:'Your data has been restored.',exported:'Copy saved.',
+ importBad:'This file isn’t a Wallet backup.',imported:'Your data has been restored.',exported:'Copy saved.',
  aiKeyTitle:'Recommendation from Claude',aiKeyHint:'The recommendation needs a Claude API key. The key stays on this phone and is not included in backups.',
  aiKeyWhere:'Create a key at',aiKeyPh:'sk-ant-…',aiKeySave:'Save',aiKeyRemove:'Remove API key',
  aiBadKey:'That key isn’t right. It should start with sk-ant-. Check it and enter it again.',aiCredit:'Your API account has no credit. Add credit at console.anthropic.com.',
  aiOffline:'No internet. The recommendation needs a connection.',
  notif:'Notifications',notifHint:'Every evening at 9 pm: a reminder for your expenses, your paycheck on payday, and recurring expenses due tomorrow.',
- notifNotApp:'Notifications only work when Paričnik is opened from its Home Screen icon. In Safari: Share → Add to Home Screen.',
+ notifNotApp:'Notifications only work when Wallet is opened from its Home Screen icon. In Safari: Share → Add to Home Screen.',
  notifNoSupport:'This phone doesn’t support notifications for web apps. It needs iOS 16.4 or newer.',
  notifDenied:'Notifications are turned off. Turn them on in Settings → Notifications → Паричник (your Home Screen app name), then come back here.',
  payday:'Payday',notifOn:'Turn on notifications',notifOnNow:'On for this phone',notifOff:'Turn off notifications',
@@ -437,8 +437,8 @@ function deltaHTML(d){
 const view=document.getElementById('view');
 function render(){
   document.documentElement.lang=lang;
-  document.getElementById('brandname').textContent=lang==='mk'?'Паричник':'Paričnik';
-  document.title=lang==='mk'?'Паричник':'Paričnik';
+  document.getElementById('brandname').textContent=lang==='mk'?'Паричник':'Wallet';
+  document.title=lang==='mk'?'Паричник':'Wallet';
   document.getElementById('tagline').textContent=t('tag');
   document.querySelectorAll('.langsw button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===lang));
   document.querySelectorAll('nav.tabs button').forEach(b=>{b.querySelector('span').textContent=t(b.dataset.tab);
